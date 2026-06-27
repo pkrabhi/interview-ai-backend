@@ -17,12 +17,12 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleAuthRequest request) {
+    public ResponseEntity<?> googleLogin(@RequestBody GoogleAuthRequest request) {
         try {
             AuthResponse response = authService.googleLogin(request.getIdToken());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
