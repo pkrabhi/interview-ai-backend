@@ -42,6 +42,34 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody java.util.Map<String, String> body) {
+        try {
+            String name = body.get("name");
+            String email = body.get("email");
+            String password = body.get("password");
+            if (name == null || email == null || password == null) {
+                return ResponseEntity.badRequest().body("name, email and password are required");
+            }
+            AuthResponse response = authService.register(name, email, password);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody java.util.Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            String password = body.get("password");
+            AuthResponse response = authService.emailLogin(email, password);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
         return ResponseEntity.ok().build();
