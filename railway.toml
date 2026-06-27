@@ -2,7 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "java -jar target/*.jar --server.port=$PORT"
-healthcheckPath = "/actuator/health"
-healthcheckTimeout = 120
+startCommand = "java -jar target/*.jar"
 restartPolicyType = "ON_FAILURE"
