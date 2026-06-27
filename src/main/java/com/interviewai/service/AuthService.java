@@ -30,24 +30,42 @@ public class AuthService {
 
     private final BCryptPasswordEncoder bcrypt = new BCryptPasswordEncoder();
 
-    public AuthResponse googleLogin(String idToken) throws Exception {
-        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                new NetHttpTransport(), JacksonFactory.getDefaultInstance())
-                .setAudience(Collections.singletonList(googleClientId))
-                .build();
+    public AuthResponse googleLogin(String token) throws Exception {
+        String googleId, email, name, avatarUrl;
 
-        GoogleIdToken googleIdToken = verifier.verify(idToken);
-        if (googleIdToken == null) {
-            throw new RuntimeException("Invalid Google token");
+        // Try ID token first
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    new NetHttpTransport(), JacksonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+            GoogleIdToken googleIdToken = verifier.verify(token);
+            if (googleIdToken != null) {
+                GoogleIdToken.Payload payload = googleIdToken.getPayload();
+                googleId  = payload.getSubject();
+                email     = payload.getEmail();
+                name      = (String) payload.get("name");
+                avatarUrl = (String) payload.get("picture");
+            } else {
+                // Fall back to access token — call Google userinfo endpoint
+                java.net.URL url = new java.net.URL("https://www.googleapis.com/oauth2/v3/userinfo");
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestProperty("Authorization", "Bearer " + token);
+                if (conn.getResponseCode() != 200) throw new RuntimeException("Invalid Google token");
+                java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream()).useDelimiter("\\A");
+                String body = scanner.hasNext() ? scanner.next() : "";
+                com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+                googleId  = node.path("sub").asText();
+                email     = node.path("email").asText();
+                name      = node.path("name").asText();
+                avatarUrl = node.path("picture").asText();
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Google token verification failed: " + e.getMessage());
         }
 
-        GoogleIdToken.Payload payload = googleIdToken.getPayload();
-        String googleId  = payload.getSubject();
-        String email     = payload.getEmail();
-        String name      = (String) payload.get("name");
-        String avatarUrl = (String) payload.get("picture");
-
-        // Create user if first login, otherwise just fetch
         Optional<User> existing = userRepository.findByGoogleId(googleId);
         User user = existing.orElseGet(() -> {
             User newUser = new User();
