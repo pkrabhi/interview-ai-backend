@@ -33,33 +33,19 @@ public class AuthService {
     public AuthResponse googleLogin(String token) throws Exception {
         String googleId, email, name, avatarUrl;
 
-        // Try ID token first
+        // Always use userinfo endpoint — works for both access tokens and ID tokens
         try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                    new NetHttpTransport(), JacksonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(googleClientId))
-                    .build();
-            GoogleIdToken googleIdToken = verifier.verify(token);
-            if (googleIdToken != null) {
-                GoogleIdToken.Payload payload = googleIdToken.getPayload();
-                googleId  = payload.getSubject();
-                email     = payload.getEmail();
-                name      = (String) payload.get("name");
-                avatarUrl = (String) payload.get("picture");
-            } else {
-                // Fall back to access token — call Google userinfo endpoint
-                java.net.URL url = new java.net.URL("https://www.googleapis.com/oauth2/v3/userinfo");
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestProperty("Authorization", "Bearer " + token);
-                if (conn.getResponseCode() != 200) throw new RuntimeException("Invalid Google token");
-                java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream()).useDelimiter("\\A");
-                String body = scanner.hasNext() ? scanner.next() : "";
-                com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
-                googleId  = node.path("sub").asText();
-                email     = node.path("email").asText();
-                name      = node.path("name").asText();
-                avatarUrl = node.path("picture").asText();
-            }
+            java.net.URL url = new java.net.URL("https://www.googleapis.com/oauth2/v3/userinfo");
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setRequestProperty("Authorization", "Bearer " + token);
+            if (conn.getResponseCode() != 200) throw new RuntimeException("Invalid Google token");
+            java.util.Scanner scanner = new java.util.Scanner(conn.getInputStream()).useDelimiter("\\A");
+            String body = scanner.hasNext() ? scanner.next() : "";
+            com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+            googleId  = node.path("sub").asText();
+            email     = node.path("email").asText();
+            name      = node.path("name").asText();
+            avatarUrl = node.path("picture").asText();
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
