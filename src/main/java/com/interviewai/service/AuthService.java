@@ -52,15 +52,19 @@ public class AuthService {
             throw new RuntimeException("Google token verification failed: " + e.getMessage());
         }
 
-        Optional<User> existing = userRepository.findByGoogleId(googleId);
-        User user = existing.orElseGet(() -> {
-            User newUser = new User();
-            newUser.setGoogleId(googleId);
-            newUser.setEmail(email);
-            newUser.setName(name);
-            newUser.setAvatarUrl(avatarUrl);
-            return userRepository.save(newUser);
-        });
+        // Find by google_id first, then by email (handles existing accounts)
+        User user = userRepository.findByGoogleId(googleId)
+                .orElseGet(() -> userRepository.findByEmail(email).orElse(null));
+        if (user == null) {
+            user = new User();
+            user.setEmail(email);
+        }
+        user.setGoogleId(googleId);
+        user.setName(name);
+        if (avatarUrl != null && !avatarUrl.isEmpty()) user.setAvatarUrl(avatarUrl);
+        if (user.getPlan() == null) user.setPlan("FREE");
+        if (user.getSessionsUsed() == null) user.setSessionsUsed(0);
+        userRepository.save(user);
 
         String jwt = jwtUtil.generateToken(user.getId(), user.getEmail());
         return new AuthResponse(jwt, user.getName(), user.getEmail(), user.getAvatarUrl(), user.getPlan());
