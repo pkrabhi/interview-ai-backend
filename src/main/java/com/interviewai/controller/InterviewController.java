@@ -8,10 +8,12 @@ import com.interviewai.entity.InterviewSession;
 import com.interviewai.entity.Message;
 import com.interviewai.entity.User;
 import com.interviewai.service.InterviewService;
+import com.interviewai.service.TranscriptionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -21,6 +23,9 @@ public class InterviewController {
 
     @Autowired
     private InterviewService interviewService;
+
+    @Autowired
+    private TranscriptionService transcriptionService;
 
     @PostMapping("/start")
     public ResponseEntity<StartSessionResponse> startSession(
@@ -59,5 +64,15 @@ public class InterviewController {
         User user = (User) authentication.getPrincipal();
         interviewService.endSessionEarly(sessionId, user);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/transcribe")
+    public ResponseEntity<?> transcribe(@RequestParam("audio") MultipartFile audio) {
+        try {
+            String text = transcriptionService.transcribe(audio.getBytes(), audio.getOriginalFilename());
+            return ResponseEntity.ok(java.util.Map.of("text", text));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }
