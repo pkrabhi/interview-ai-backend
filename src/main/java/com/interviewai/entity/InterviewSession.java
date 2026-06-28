@@ -36,6 +36,9 @@ public class InterviewSession {
     @Column(name = "jd_text", columnDefinition = "TEXT")
     private String jdText;
 
+    @Column(name = "resume_summary", columnDefinition = "TEXT")
+    private String resumeSummary;
+
     @Column(length = 20)
     private String status = "ACTIVE";
 

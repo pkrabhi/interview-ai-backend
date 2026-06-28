@@ -8,4 +8,5 @@ public class StartSessionRequest {
     private String level;
     private String interviewType;
     private String jdText;
+    private String resumeSummary;
 }

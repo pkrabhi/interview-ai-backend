@@ -42,6 +42,7 @@ public class InterviewService {
         session.setLevel(request.getLevel());
         session.setInterviewType(request.getInterviewType());
         session.setJdText(request.getJdText());
+        session.setResumeSummary(request.getResumeSummary());
         session.setStatus("ACTIVE");
         session = sessionRepository.save(session);
 
@@ -184,6 +185,11 @@ public class InterviewService {
 
         if (session.getJdText() != null && !session.getJdText().isEmpty()) {
             prompt.append("JOB DESCRIPTION: ").append(session.getJdText()).append("\n");
+        }
+
+        if (session.getResumeSummary() != null && !session.getResumeSummary().isEmpty()) {
+            prompt.append("CANDIDATE'S RESUME SUMMARY: ").append(session.getResumeSummary()).append("\n");
+            prompt.append("IMPORTANT: Use the resume summary to ask about the candidate's ACTUAL projects, skills, and experiences. Reference specific things from their resume.\n");
         }
 
         // Random topic seed so each session starts from a different angle

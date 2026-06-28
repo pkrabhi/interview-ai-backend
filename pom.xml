@@ -89,6 +89,13 @@
 			<version>6.20.1</version>
 		</dependency>
 
+		<!-- Apache PDFBox for resume text extraction -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>2.0.29</version>
+		</dependency>
+
 		<!-- Razorpay -->
 		<dependency>
 			<groupId>com.razorpay</groupId>
