@@ -32,16 +32,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.getCurrentUser(user.getId()));
     }
 
-    @PostMapping("/dev-login")
-    public ResponseEntity<AuthResponse> devLogin() {
-        try {
-            AuthResponse response = authService.devLogin();
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
-        }
-    }
-
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody java.util.Map<String, String> body) {
         try {

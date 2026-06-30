@@ -20,6 +20,9 @@ public class ResumeController {
         try {
             if (file.isEmpty()) return ResponseEntity.badRequest().body("No file provided");
             if (file.getSize() > 5 * 1024 * 1024) return ResponseEntity.badRequest().body("File too large. Max 5MB.");
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.equals("application/pdf"))
+                return ResponseEntity.badRequest().body("Only PDF files are accepted.");
             String summary = resumeService.extractAndSummarise(file.getBytes());
             return ResponseEntity.ok(Map.of("summary", summary));
         } catch (Exception e) {

@@ -50,9 +50,11 @@ public class TranscriptionService {
         }
 
         int status = conn.getResponseCode();
-        InputStream is = status == 200 ? conn.getInputStream() : conn.getErrorStream();
-        java.util.Scanner scanner = new java.util.Scanner(is).useDelimiter("\\A");
-        String body = scanner.hasNext() ? scanner.next() : "";
+        String body;
+        try (InputStream is = status == 200 ? conn.getInputStream() : conn.getErrorStream();
+             java.util.Scanner scanner = new java.util.Scanner(is).useDelimiter("\\A")) {
+            body = scanner.hasNext() ? scanner.next() : "";
+        }
 
         com.fasterxml.jackson.databind.JsonNode node =
                 new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);

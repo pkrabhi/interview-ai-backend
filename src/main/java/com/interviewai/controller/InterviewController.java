@@ -53,8 +53,9 @@ public class InterviewController {
     }
 
     @GetMapping("/session/{id}/messages")
-    public ResponseEntity<List<Message>> getMessages(@PathVariable Long id) {
-        return ResponseEntity.ok(interviewService.getSessionMessages(id));
+    public ResponseEntity<?> getMessages(@PathVariable Long id, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return ResponseEntity.ok(interviewService.getSessionMessages(id, user.getId()));
     }
 
     @PostMapping("/end")

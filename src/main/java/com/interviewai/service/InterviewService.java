@@ -9,10 +9,12 @@ import com.interviewai.entity.User;
 import com.interviewai.repository.InterviewSessionRepository;
 import com.interviewai.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class InterviewService {
@@ -61,6 +63,9 @@ public class InterviewService {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
 
+        if (!session.getUser().getId().equals(user.getId()))
+            throw new RuntimeException("Access denied");
+
         if (!"ACTIVE".equals(session.getStatus())) {
             throw new RuntimeException("Session is already completed");
         }
@@ -83,9 +88,11 @@ public class InterviewService {
             session.setCompletedAt(LocalDateTime.now());
             sessionRepository.save(session);
             aiResponse = aiResponse.replace("INTERVIEW_COMPLETE", "").trim();
-            // Generate report asynchronously — pass ID only, service fetches fresh
             final Long completedSessionId = session.getId();
-            new Thread(() -> reportService.generateReportById(completedSessionId)).start();
+            CompletableFuture.runAsync(() -> {
+                try { reportService.generateReportById(completedSessionId); }
+                catch (Exception e) { /* log silently, report can be retried by user */ }
+            });
         }
 
         // Save AI response
@@ -97,19 +104,28 @@ public class InterviewService {
     public void endSessionEarly(Long sessionId, User user) {
         InterviewSession session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));
+        if (!session.getUser().getId().equals(user.getId()))
+            throw new RuntimeException("Access denied");
         if (!"ACTIVE".equals(session.getStatus())) return;
         session.setStatus("COMPLETED");
         session.setCompletedAt(java.time.LocalDateTime.now());
         sessionRepository.save(session);
         final Long completedId = session.getId();
-        new Thread(() -> reportService.generateReportById(completedId)).start();
+        CompletableFuture.runAsync(() -> {
+            try { reportService.generateReportById(completedId); }
+            catch (Exception e) { /* report can be retried by user */ }
+        });
     }
 
     public List<InterviewSession> getUserSessions(User user) {
         return sessionRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
     }
 
-    public List<Message> getSessionMessages(Long sessionId) {
+    public List<Message> getSessionMessages(Long sessionId, Long userId) {
+        InterviewSession session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("Session not found"));
+        if (!session.getUser().getId().equals(userId))
+            throw new RuntimeException("Access denied");
         return messageRepository.findBySessionIdOrderBySequenceAsc(sessionId);
     }
 
