@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.interviewai.entity.Message;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -37,6 +38,14 @@ public class GroqService {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
+    // Without an explicit timeout, HttpClients.createDefault() can hang indefinitely if
+    // the provider is slow/unresponsive — the caller (and the user) would just see a
+    // stuck spinner instead of a clean error to fall back from.
+    private static final RequestConfig REQUEST_CONFIG = RequestConfig.custom()
+            .setConnectTimeout(10_000)
+            .setSocketTimeout(40_000)
+            .build();
+
     public String chat(List<Message> history, String systemPrompt) throws Exception {
         ObjectNode requestBody = mapper.createObjectNode();
         requestBody.put("model", model);
@@ -58,6 +67,7 @@ public class GroqService {
         }
 
         HttpPost request = new HttpPost(apiUrl);
+        request.setConfig(REQUEST_CONFIG);
         request.setHeader("Authorization", "Bearer " + apiKey);
         request.setHeader("Content-Type", "application/json");
         request.setEntity(new StringEntity(mapper.writeValueAsString(requestBody), "UTF-8"));

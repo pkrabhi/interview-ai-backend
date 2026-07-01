@@ -1,5 +1,7 @@
 package com.interviewai.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.interviewai.dto.SendMessageResponse;
 import com.interviewai.dto.StartSessionRequest;
 import com.interviewai.dto.StartSessionResponse;
@@ -30,6 +32,8 @@ public class InterviewService {
 
     @Autowired
     private ReportService reportService;
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public StartSessionResponse startSession(StartSessionRequest request, User user) {
         // Check free plan limit
@@ -245,10 +249,7 @@ public class InterviewService {
             prompt.append("JOB DESCRIPTION: ").append(session.getJdText()).append("\n");
         }
 
-        if (session.getResumeSummary() != null && !session.getResumeSummary().isEmpty()) {
-            prompt.append("CANDIDATE'S RESUME SUMMARY: ").append(session.getResumeSummary()).append("\n");
-            prompt.append("IMPORTANT: Use the resume summary to ask about the candidate's ACTUAL projects, skills, and experiences. Reference specific things from their resume.\n");
-        }
+        appendResumeContext(prompt, session.getResumeSummary());
 
         // Random topic seed so each session starts from a different angle
         String[] topics = TOPIC_SEEDS.getOrDefault(session.getRole().toLowerCase(),
@@ -271,5 +272,47 @@ public class InterviewService {
         prompt.append("START: Greet the candidate warmly and ask your first question on the starting topic.");
 
         return prompt.toString();
+    }
+
+    /**
+     * ResumeService now returns structured JSON ({summary, skills, projects, companies,
+     * yearsExperience}) instead of a prose paragraph, so the AI gets concrete things to ask
+     * about instead of a vague blurb. Falls back to treating the value as plain text for any
+     * legacy/unparseable resume summary already stored on older sessions.
+     */
+    private void appendResumeContext(StringBuilder prompt, String resumeSummary) {
+        if (resumeSummary == null || resumeSummary.isEmpty()) return;
+
+        try {
+            JsonNode data = mapper.readTree(resumeSummary);
+            prompt.append("CANDIDATE'S RESUME:\n");
+            if (data.has("summary") && !data.get("summary").asText().isEmpty()) {
+                prompt.append("- Overview: ").append(data.get("summary").asText()).append("\n");
+            }
+            if (data.has("yearsExperience") && data.get("yearsExperience").asInt(0) > 0) {
+                prompt.append("- Experience: ").append(data.get("yearsExperience").asInt()).append(" years\n");
+            }
+            if (data.has("skills") && data.get("skills").isArray() && data.get("skills").size() > 0) {
+                List<String> skills = new java.util.ArrayList<>();
+                data.get("skills").forEach(s -> skills.add(s.asText()));
+                prompt.append("- Skills: ").append(String.join(", ", skills)).append("\n");
+            }
+            if (data.has("companies") && data.get("companies").isArray() && data.get("companies").size() > 0) {
+                List<String> companies = new java.util.ArrayList<>();
+                data.get("companies").forEach(c -> companies.add(c.path("role").asText("") + " at " + c.path("name").asText("")));
+                prompt.append("- Experience: ").append(String.join("; ", companies)).append("\n");
+            }
+            if (data.has("projects") && data.get("projects").isArray() && data.get("projects").size() > 0) {
+                List<String> projects = new java.util.ArrayList<>();
+                data.get("projects").forEach(p -> projects.add(p.path("name").asText("") + " (" + p.path("description").asText("") + ")"));
+                prompt.append("- Projects: ").append(String.join("; ", projects)).append("\n");
+            }
+            prompt.append("IMPORTANT: Ask at least 2-3 questions specifically about the candidate's listed " +
+                    "projects and skills above — reference them by name. Don't just ask generic role questions.\n");
+        } catch (Exception e) {
+            // Legacy prose summary from before structured extraction — use as-is.
+            prompt.append("CANDIDATE'S RESUME SUMMARY: ").append(resumeSummary).append("\n");
+            prompt.append("IMPORTANT: Use the resume summary to ask about the candidate's ACTUAL projects, skills, and experiences.\n");
+        }
     }
 }
