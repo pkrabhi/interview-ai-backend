@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -65,7 +66,71 @@ public class ReportService {
             evaluationJson = getDefaultEvaluation();
         }
 
-        return saveReport(session, evaluationJson);
+        String qaReviewJson = buildQaReview(session, messages);
+
+        return saveReport(session, evaluationJson, qaReviewJson);
+    }
+
+    /** Pairs each interviewer question with the candidate's next answer, then asks the AI for a model answer per question. */
+    private String buildQaReview(InterviewSession session, List<Message> messages) {
+        List<String> questions = new ArrayList<>();
+        List<String> candidateAnswers = new ArrayList<>();
+
+        for (int i = 0; i < messages.size(); i++) {
+            Message msg = messages.get(i);
+            if (!"interviewer".equals(msg.getRole())) continue;
+            String answer = null;
+            if (i + 1 < messages.size() && "candidate".equals(messages.get(i + 1).getRole())) {
+                answer = messages.get(i + 1).getContent();
+            }
+            questions.add(msg.getContent());
+            candidateAnswers.add(answer);
+        }
+
+        if (questions.isEmpty()) return "[]";
+
+        String idealAnswersJson;
+        try {
+            idealAnswersJson = aiService.getInterviewerResponse(
+                java.util.Collections.emptyList(), buildIdealAnswersPrompt(session, questions));
+        } catch (Exception e) {
+            log.error("Failed to generate ideal answers: {}", e.getMessage());
+            idealAnswersJson = null;
+        }
+
+        List<String> idealAnswers = new ArrayList<>();
+        try {
+            if (idealAnswersJson != null) {
+                ArrayNode arr = (ArrayNode) mapper.readTree(idealAnswersJson);
+                for (int i = 0; i < arr.size(); i++) idealAnswers.add(arr.get(i).asText());
+            }
+        } catch (Exception e) {
+            log.error("Error parsing ideal answers JSON: {}", e.getMessage());
+        }
+
+        ArrayNode review = mapper.createArrayNode();
+        for (int i = 0; i < questions.size(); i++) {
+            ObjectNode entry = mapper.createObjectNode();
+            entry.put("question", questions.get(i));
+            entry.put("candidateAnswer", candidateAnswers.get(i) != null ? candidateAnswers.get(i) : "No answer provided");
+            entry.put("idealAnswer", i < idealAnswers.size() ? idealAnswers.get(i) : "Not available");
+            review.add(entry);
+        }
+        return review.toString();
+    }
+
+    private String buildIdealAnswersPrompt(InterviewSession session, List<String> questions) {
+        StringBuilder qList = new StringBuilder();
+        for (int i = 0; i < questions.size(); i++) {
+            qList.append(i + 1).append(". ").append(questions.get(i)).append("\n");
+        }
+        return "You are an expert senior technical interviewer at a top Indian IT company.\n" +
+                "ROLE: " + session.getRole() + " Developer | LEVEL: " + session.getLevel() + "\n\n" +
+                "For each of the following interview questions, write a concise, correct model answer " +
+                "(3-5 sentences) that a strong candidate would give.\n\n" +
+                "QUESTIONS:\n" + qList + "\n" +
+                "Respond with ONLY a valid JSON array of strings, one answer per question, in the same order, " +
+                "no markdown, no explanation. Example: [\"answer 1\", \"answer 2\"]";
     }
 
     public Report getReport(Long sessionId) {
@@ -73,7 +138,7 @@ public class ReportService {
                 .orElseThrow(() -> new RuntimeException("Report not found for session: " + sessionId));
     }
 
-    private Report saveReport(InterviewSession session, String evaluationJson) {
+    private Report saveReport(InterviewSession session, String evaluationJson, String qaReviewJson) {
         try {
             ObjectNode eval = (ObjectNode) mapper.readTree(evaluationJson);
 
@@ -87,6 +152,7 @@ public class ReportService {
             report.setStrengths(eval.has("strengths") ? eval.get("strengths").toString() : "[\"Good communication\"]");
             report.setImprovements(eval.has("improvements") ? eval.get("improvements").toString() : "[\"Study core concepts\"]");
             report.setNextTopics(eval.has("next_topics") ? eval.get("next_topics").toString() : "[\"Spring Boot internals\"]");
+            report.setQaReview(qaReviewJson != null ? qaReviewJson : "[]");
 
             return reportRepository.save(report);
         } catch (Exception e) {
@@ -101,6 +167,7 @@ public class ReportService {
             report.setStrengths("[\"Demonstrated good communication skills\"]");
             report.setImprovements("[\"Review core Java concepts\",\"Practice system design\"]");
             report.setNextTopics("[\"Spring Boot Auto-configuration\",\"Microservices patterns\"]");
+            report.setQaReview(qaReviewJson != null ? qaReviewJson : "[]");
             return reportRepository.save(report);
         }
     }

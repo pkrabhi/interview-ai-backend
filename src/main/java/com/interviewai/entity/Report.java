@@ -48,6 +48,9 @@ public class Report {
     @Column(name = "next_topics", columnDefinition = "TEXT")
     private String nextTopics;      // JSON array string
 
+    @Column(name = "qa_review", columnDefinition = "TEXT")
+    private String qaReview;        // JSON array string: [{question, candidateAnswer, idealAnswer}]
+
     @Column(name = "pdf_path", length = 500)
     private String pdfPath;
 

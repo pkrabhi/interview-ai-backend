@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255),
     avatar_url TEXT,
+    password_hash VARCHAR(255),
     plan VARCHAR(20) DEFAULT 'FREE',
     sessions_used INT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
     level VARCHAR(50),
     interview_type VARCHAR(50),
     jd_text TEXT,
+    resume_summary TEXT,
     status VARCHAR(20) DEFAULT 'ACTIVE',
     overall_score INT,
     duration_secs INT,
@@ -47,6 +49,7 @@ CREATE TABLE IF NOT EXISTS reports (
     improvements TEXT,
     next_topics TEXT,
     pdf_path TEXT,
+    qa_review TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
