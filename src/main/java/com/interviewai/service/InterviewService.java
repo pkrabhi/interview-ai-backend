@@ -194,6 +194,36 @@ public class InterviewService {
             "TypeScript with React",
             "testing React components"
         });
+        TOPIC_SEEDS.put("python", new String[]{
+            "Python's GIL and concurrency (threading vs multiprocessing vs asyncio)",
+            "Django/FastAPI request lifecycle and middleware",
+            "decorators, generators, and context managers",
+            "Pandas/NumPy for data manipulation",
+            "Python memory management and garbage collection",
+            "REST API design and ORMs (SQLAlchemy/Django ORM)",
+            "testing with pytest and mocking",
+            "packaging, virtual environments, and dependency management"
+        });
+        TOPIC_SEEDS.put("node", new String[]{
+            "the Node.js event loop and non-blocking I/O",
+            "Express/NestJS middleware and request handling",
+            "async patterns (callbacks, Promises, async/await)",
+            "streams and buffers",
+            "authentication (JWT/OAuth) in Node APIs",
+            "error handling and process management",
+            "npm ecosystem and dependency management",
+            "scaling Node apps (clustering, worker threads)"
+        });
+        TOPIC_SEEDS.put("dotnet", new String[]{
+            "ASP.NET Core middleware pipeline and dependency injection",
+            "Entity Framework Core and LINQ queries",
+            "async/await and Task-based programming in C#",
+            "memory management and garbage collection in .NET",
+            "Web API design and versioning",
+            "authentication/authorization (Identity, JWT)",
+            "unit testing with xUnit/NUnit and mocking",
+            "microservices with .NET and gRPC"
+        });
         TOPIC_SEEDS.put("hr", new String[]{
             "your biggest professional achievement",
             "a conflict you resolved at work",
