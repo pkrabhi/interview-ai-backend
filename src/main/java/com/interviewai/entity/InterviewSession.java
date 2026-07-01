@@ -39,6 +39,9 @@ public class InterviewSession {
     @Column(name = "resume_summary", columnDefinition = "TEXT")
     private String resumeSummary;
 
+    @Column(name = "question_count")
+    private Integer questionCount = 8;
+
     @Column(length = 20)
     private String status = "ACTIVE";
 

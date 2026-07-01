@@ -45,6 +45,9 @@ public class InterviewService {
         session.setInterviewType(request.getInterviewType());
         session.setJdText(request.getJdText());
         session.setResumeSummary(request.getResumeSummary());
+        int questionCount = request.getQuestionCount() != null
+                ? Math.max(3, Math.min(20, request.getQuestionCount())) : 8;
+        session.setQuestionCount(questionCount);
         session.setStatus("ACTIVE");
         session = sessionRepository.save(session);
 
@@ -82,6 +85,15 @@ public class InterviewService {
         String aiResponse = aiService.getInterviewerResponse(history, systemPrompt);
 
         boolean interviewComplete = aiResponse.contains("INTERVIEW_COMPLETE");
+
+        // Safety net: force completion if the AI overshoots its target count by more
+        // than a small buffer, in case it fails to count candidate responses correctly.
+        int candidateAnswerCount = (currentCount + 1 + 1) / 2; // messages alternate interviewer/candidate
+        int targetCount = session.getQuestionCount() != null ? session.getQuestionCount() : 8;
+        if (!interviewComplete && candidateAnswerCount >= targetCount + 3) {
+            interviewComplete = true;
+            aiResponse = aiResponse + " That wraps up our interview today — thanks for your time!";
+        }
 
         if (interviewComplete) {
             session.setStatus("COMPLETED");
@@ -220,7 +232,9 @@ public class InterviewService {
         prompt.append("3. If the answer is shallow or incomplete → ask a probing follow-up.\n");
         prompt.append("4. If the answer is wrong → probe further, don't correct immediately.\n");
         prompt.append("5. If the answer is excellent → acknowledge briefly and move to next topic.\n");
-        prompt.append("6. After 6-8 candidate responses → say exactly: INTERVIEW_COMPLETE then give a one-line closing.\n");
+        int targetQuestions = session.getQuestionCount() != null ? session.getQuestionCount() : 8;
+        prompt.append("6. After exactly ").append(targetQuestions)
+              .append(" candidate responses → say exactly: INTERVIEW_COMPLETE then give a one-line closing. Count carefully — do not end early or run over.\n");
         prompt.append("7. Keep questions India-IT-market relevant (Spring Boot, microservices, common interview topics).\n");
         prompt.append("8. Stay in character. You are a human interviewer, not an AI assistant.\n");
         prompt.append("9. Never reveal you are an AI.\n\n");

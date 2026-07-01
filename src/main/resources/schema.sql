@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
     interview_type VARCHAR(50),
     jd_text TEXT,
     resume_summary TEXT,
+    question_count INT DEFAULT 8,
     status VARCHAR(20) DEFAULT 'ACTIVE',
     overall_score INT,
     duration_secs INT,

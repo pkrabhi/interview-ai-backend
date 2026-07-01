@@ -9,4 +9,5 @@ public class StartSessionRequest {
     private String interviewType;
     private String jdText;
     private String resumeSummary;
+    private Integer questionCount;
 }
