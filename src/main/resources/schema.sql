@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255),
     plan VARCHAR(20) DEFAULT 'FREE',
     sessions_used INT DEFAULT 0,
+    push_token VARCHAR(255),
+    notifications_enabled BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -25,6 +27,7 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
     status VARCHAR(20) DEFAULT 'ACTIVE',
     overall_score INT,
     duration_secs INT,
+    reminder_sent BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     completed_at TIMESTAMPTZ
 );

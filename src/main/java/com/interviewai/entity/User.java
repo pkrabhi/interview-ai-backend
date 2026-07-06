@@ -39,6 +39,12 @@ public class User {
     @Column(name = "sessions_used")
     private Integer sessionsUsed = 0;
 
+    @Column(name = "push_token", length = 255)
+    private String pushToken;
+
+    @Column(name = "notifications_enabled")
+    private Boolean notificationsEnabled = true;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 

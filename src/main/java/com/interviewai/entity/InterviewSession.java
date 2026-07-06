@@ -56,4 +56,7 @@ public class InterviewSession {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    @Column(name = "reminder_sent")
+    private Boolean reminderSent = false;
 }

@@ -33,6 +33,9 @@ public class InterviewService {
     @Autowired
     private ReportService reportService;
 
+    @Autowired
+    private PushNotificationService pushNotificationService;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     public StartSessionResponse startSession(StartSessionRequest request, User user) {
@@ -106,7 +109,10 @@ public class InterviewService {
             aiResponse = aiResponse.replace("INTERVIEW_COMPLETE", "").trim();
             final Long completedSessionId = session.getId();
             CompletableFuture.runAsync(() -> {
-                try { reportService.generateReportById(completedSessionId); }
+                try {
+                    reportService.generateReportById(completedSessionId);
+                    notifyReportReady(user, completedSessionId);
+                }
                 catch (Exception e) { /* log silently, report can be retried by user */ }
             });
         }
@@ -128,7 +134,10 @@ public class InterviewService {
         sessionRepository.save(session);
         final Long completedId = session.getId();
         CompletableFuture.runAsync(() -> {
-            try { reportService.generateReportById(completedId); }
+            try {
+                reportService.generateReportById(completedId);
+                notifyReportReady(user, completedId);
+            }
             catch (Exception e) { /* report can be retried by user */ }
         });
     }
@@ -143,6 +152,19 @@ public class InterviewService {
         if (!session.getUser().getId().equals(userId))
             throw new RuntimeException("Access denied");
         return messageRepository.findBySessionIdOrderBySequenceAsc(sessionId);
+    }
+
+    private void notifyReportReady(User user, Long sessionId) {
+        if (user == null || !Boolean.TRUE.equals(user.getNotificationsEnabled()) || user.getPushToken() == null) return;
+        java.util.Map<String, Object> data = new java.util.HashMap<>();
+        data.put("type", "report_ready");
+        data.put("sessionId", sessionId);
+        pushNotificationService.send(
+                user.getPushToken(),
+                "Your interview report is ready",
+                "See how you did and what to study next.",
+                data
+        );
     }
 
     private void saveMessage(InterviewSession session, String role, String content, int sequence) {
