@@ -15,14 +15,6 @@
 	<description>InterviewAI Spring Boot Backend</description>
 
 	<properties>
-		<!-- NOTE: ResumeController/InterviewController use Map.of() (Java 9+), so this
-		     project cannot actually compile with a real Java 8 JDK — only with a newer JDK
-		     compiling in source/target=1.8 mode (which uses the *host* JDK's own class
-		     library, not real Java 8's, unless -release is used). Railway's build must be
-		     using a newer JDK for this reason. The Dockerfile's build stage uses JDK 17 to
-		     match; if you build locally with an actual JDK 8 install, this will fail with
-		     "cannot find symbol: Map.of" — that's not a regression, just this project's
-		     existing state. -->
 		<java.version>1.8</java.version>
 	</properties>
 
@@ -163,8 +155,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.10.1</version>
 				<configuration>
-					<source>${java.version}</source>
-					<target>${java.version}</target>
+					<source>1.8</source>
+					<target>1.8</target>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>

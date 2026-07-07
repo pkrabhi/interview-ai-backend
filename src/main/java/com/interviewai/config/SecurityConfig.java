@@ -32,9 +32,6 @@ public class SecurityConfig {
             .and()
             .authorizeRequests()
                 .antMatchers("/api/auth/**").permitAll()
-                // Render (and any HTTP-based host health check) hits this unauthenticated —
-                // show-details=never in application.properties keeps it from leaking info.
-                .antMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             .and()
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
