@@ -71,7 +71,7 @@ public class InterviewController {
     public ResponseEntity<?> transcribe(@RequestParam("audio") MultipartFile audio) {
         try {
             String text = transcriptionService.transcribe(audio.getBytes(), audio.getOriginalFilename());
-            return ResponseEntity.ok(java.util.Map.of("text", text));
+            return ResponseEntity.ok(java.util.Collections.singletonMap("text", text));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
