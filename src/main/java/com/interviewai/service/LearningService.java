@@ -12,16 +12,21 @@ import com.interviewai.entity.User;
 import com.interviewai.repository.LearningMessageRepository;
 import com.interviewai.repository.LearningSessionRepository;
 import com.interviewai.repository.ReportRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 @Service
 public class LearningService {
+
+    private static final Logger log = LoggerFactory.getLogger(LearningService.class);
 
     @Autowired
     private LearningSessionRepository sessionRepository;
@@ -72,7 +77,14 @@ public class LearningService {
     }
 
     public List<LearningSession> getUserSessions(User user) {
-        return sessionRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        try {
+            return sessionRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        } catch (Exception e) {
+            // This list is decorative (LearnScreen shows it as a "resume" shortcut) — never
+            // let a query issue here surface as an unexpected status to the client.
+            log.error("Failed to load learning sessions for user {}: {}", user.getId(), e.getMessage(), e);
+            return Collections.emptyList();
+        }
     }
 
     public List<LearningMessage> getSessionMessages(Long sessionId, Long userId) {
@@ -88,15 +100,20 @@ public class LearningService {
      * extra AI call needed, this data is already generated after every completed interview.
      */
     public List<String> getSuggestedTopics(User user) {
-        List<Report> reports = reportRepository.findBySession_User_IdOrderByCreatedAtDesc(user.getId());
-        Set<String> topics = new LinkedHashSet<>();
+        try {
+            List<Report> reports = reportRepository.findBySession_User_IdOrderByCreatedAtDesc(user.getId());
+            Set<String> topics = new LinkedHashSet<>();
 
-        for (Report report : reports) {
-            if (topics.size() >= 8) break;
-            addTopicsFromJson(topics, report.getNextTopics());
-            addTopicsFromJson(topics, report.getImprovements());
+            for (Report report : reports) {
+                if (topics.size() >= 8) break;
+                addTopicsFromJson(topics, report.getNextTopics());
+                addTopicsFromJson(topics, report.getImprovements());
+            }
+            return new ArrayList<>(topics);
+        } catch (Exception e) {
+            log.error("Failed to load suggested topics for user {}: {}", user.getId(), e.getMessage(), e);
+            return Collections.emptyList();
         }
-        return new ArrayList<>(topics);
     }
 
     private void addTopicsFromJson(Set<String> topics, String json) {
