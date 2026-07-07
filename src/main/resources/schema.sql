@@ -57,6 +57,22 @@ CREATE TABLE IF NOT EXISTS reports (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS learning_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    topic VARCHAR(255),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS learning_messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id BIGINT REFERENCES learning_sessions(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    sequence INT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS subscriptions (
     id BIGSERIAL PRIMARY KEY,
     user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
@@ -74,3 +90,5 @@ CREATE INDEX IF NOT EXISTS idx_sessions_user ON interview_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_subs_user ON subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subs_order ON subscriptions(razorpay_order_id);
+CREATE INDEX IF NOT EXISTS idx_learning_sessions_user ON learning_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_learning_messages_session ON learning_messages(session_id);
